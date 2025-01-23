@@ -57,25 +57,31 @@ class LinearFeatureBaseline(nn.Module):
         reg_coeff = self._reg_coeff
         XT_y = torch.matmul(featmat.t(), returns)
         XT_X = torch.matmul(featmat.t(), featmat)
+
         for _ in range(5):
-            try:
-                coeffs, _ = torch.lstsq(XT_y, XT_X + reg_coeff * self._eye)
+                try:
+                    # 1. Replace the 'torch.lstsq' with 'torch.linalg.lstsq'. Because the former function was removed.
+                    # 2. Output coeffs is an instance now, not a tensor. So use coeffs.solution referring to the value.
 
-                # An extra round of increasing regularization eliminated
-                # inf or nan in the least-squares solution most of the time
-                if torch.isnan(coeffs).any() or torch.isinf(coeffs).any():
-                    raise RuntimeError
+                    # coeffs, _ = torch.lstsq(XT_y, XT_X + reg_coeff * self._eye)
 
-                break
-            except RuntimeError:
-                reg_coeff *= 10
-        else:
-            raise RuntimeError('Unable to solve the normal equations in '
-                '`LinearFeatureBaseline`. The matrix X^T*X (with X the design '
-                'matrix) is not full-rank, regardless of the regularization '
-                '(maximum regularization: {0}).'.format(reg_coeff))
-        self.weight.copy_(coeffs.flatten())
+                    coeffs= torch.linalg.lstsq(XT_y, XT_X + reg_coeff * self._eye, driver='gelsy')
+                    # coeffs,_ = torch.lstsq(XT_y, XT_X + reg_coeff * self._eye)
+                    # An extra round of increasing regularization eliminated
+                    # inf or nan in the least-squares solution most of the time
 
+                    if torch.isnan(coeffs.solution).any() or torch.isinf(coeffs.solution).any():
+                        raise RuntimeError
+
+                    break
+                except RuntimeError:
+                    reg_coeff *= 10
+                else:
+                    raise RuntimeError('Unable to solve the normal equations in '
+                        '`LinearFeatureBaseline`. The matrix X^T*X (with X the design '
+                        'matrix) is not full-rank, regardless of the regularization '
+                        '(maximum regularization: {0}).'.format(reg_coeff))
+                self.weight.copy_(coeffs.solution.flatten())
     def forward(self, episodes):
         features = self._feature(episodes)
         values = torch.mv(features.view(-1, self.feature_size), self.weight)
