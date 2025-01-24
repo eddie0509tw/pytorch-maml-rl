@@ -18,21 +18,13 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python 3.8 and set up a virtual environment
-RUN apt-get update && apt-get install -y python3.8 python3.8-dev python3.8-venv python3-pip \
-    && python3.8 -m venv /venv \
-    && /venv/bin/pip install --upgrade pip
-
-# Ensure the virtual environment is used by default
-ENV PATH="/venv/bin:$PATH"
-
 # Copy requirements and install dependencies
 COPY requirements.txt .
-RUN /venv/bin/pip install --upgrade pip==22.0.3
-RUN /venv/bin/pip install --no-cache-dir -r requirements.txt
-RUN /venv/bin/pip install opencv-python==3.4.17.61 
-RUN /venv/bin/pip install gym==0.19.0
-RUN /venv/bin/pip install wandb
+RUN pip install --upgrade pip==22.0.3
+RUN pip install -r requirements.txt
+RUN pip install opencv-python==3.4.17.61 
+RUN pip install gym==0.19.0
+RUN pip install wandb
 
 # RUN mkdir -p /root/.mujoco \
 #     && wget https://www.roboti.us/download/mujoco200_linux.zip \
