@@ -1,12 +1,14 @@
 import gym
+import functools
+
+def create_env(env_name, env_kwargs={}, seed=None):
+    env = gym.make(env_name, **env_kwargs)
+    if hasattr(env, 'seed'):
+        env.seed(seed)
+    return env
 
 def make_env(env_name, env_kwargs={}, seed=None):
-    def _make_env():
-        env = gym.make(env_name, **env_kwargs)
-        if hasattr(env, 'seed'):
-            env.seed(seed)
-        return env
-    return _make_env
+    return functools.partial(create_env, env_name, env_kwargs, seed)
 
 class Sampler(object):
     def __init__(self,

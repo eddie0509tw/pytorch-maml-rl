@@ -14,6 +14,7 @@ from maml_rl.utils.reinforcement_learning import get_returns
 
 
 def main(args):
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Replace with the GPU ID
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -26,6 +27,9 @@ def main(args):
         with open(config_filename, 'w') as f:
             config.update(vars(args))
             json.dump(config, f, indent=2)
+    if args.use_cuda:
+        mp.set_start_method('spawn', force=True)
+        torch.backends.cudnn.benchmark = True
 
     if args.seed is not None:
         torch.manual_seed(args.seed)
@@ -44,6 +48,7 @@ def main(args):
     baseline = LinearFeatureBaseline(get_input_size(env))
 
     # Sampler
+    print(args.num_workers)
     sampler = MultiTaskSampler(config['env-name'],
                                env_kwargs=config.get('env-kwargs', {}),
                                batch_size=config['fast-batch-size'],
@@ -73,7 +78,6 @@ def main(args):
                                 cg_damping=config['cg-damping'],
                                 ls_max_steps=config['ls-max-steps'],
                                 ls_backtrack_ratio=config['ls-backtrack-ratio'])
-
         train_episodes, valid_episodes = sampler.sample_wait(futures)
         num_iterations += sum(sum(episode.lengths) for episode in train_episodes[0])
         num_iterations += sum(sum(episode.lengths) for episode in valid_episodes)
@@ -91,6 +95,9 @@ def main(args):
 if __name__ == '__main__':
     import argparse
     import multiprocessing as mp
+    print(torch.version.cuda)
+    print(torch.cuda.is_available())
+    mp.set_start_method('spawn', force=True)
 
     parser = argparse.ArgumentParser(description='Reinforcement learning with '
         'Model-Agnostic Meta-Learning (MAML) - Train')
@@ -112,7 +119,7 @@ if __name__ == '__main__':
         'is not guaranteed. Using CPU is encouraged.')
 
     args = parser.parse_args()
-    args.device = ('cuda' if (torch.cuda.is_available()
+    args.device = ('cuda:0' if (torch.cuda.is_available()
                    and args.use_cuda) else 'cpu')
-
+    print(args.device)
     main(args)

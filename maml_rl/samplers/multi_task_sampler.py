@@ -182,7 +182,6 @@ class MultiTaskSampler(Sampler):
             name='valid-consumer')
         self._valid_consumer_thread.daemon = True
         self._valid_consumer_thread.start()
-
         return (train_episodes_futures, valid_episodes_futures)
 
     def _join_consumer_threads(self):
@@ -268,6 +267,7 @@ class SamplerWorker(mp.Process):
             self.train_queue.put((index, step, deepcopy(train_episodes)))
 
             with self.policy_lock:
+
                 loss = reinforce_loss(self.policy, train_episodes, params=params)
                 params = self.policy.update_params(loss,
                                                    params=params,
@@ -321,7 +321,6 @@ class SamplerWorker(mp.Process):
     def run(self):
         while True:
             data = self.task_queue.get()
-
             if data is None:
                 self.envs.close()
                 self.task_queue.task_done()
